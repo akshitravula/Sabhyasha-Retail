@@ -6,11 +6,18 @@
   <title>Add Product</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
   <style>
+    body {
+      background: linear-gradient(to right, #6a11cb, #2575fc);
+      color: #ffffff;
+    }
     .step {
       display: none;
     }
     .step-active {
       display: block;
+    }
+    .variant-container {
+      margin-bottom: 20px;
     }
   </style>
 </head>
@@ -18,13 +25,14 @@
   <div class="container mt-5">
     <h2 class="text-center">Add Product</h2>
     <form id="productForm">
-      
+
+      <!-- Form Navigation -->
       <div class="text-center mb-3">
-        <button type="button" class="btn btn-primary" onclick="prevStep()">Previous</button>
+        <button type="button" class="btn btn-secondary" onclick="prevStep()">Previous</button>
         <button type="button" class="btn btn-primary" onclick="nextStep()">Next</button>
       </div>
 
-      
+      <!-- Step 1: Basic Product Details -->
       <div class="step step-active">
         <h4>Basic Product Details</h4>
         <div class="mb-3">
@@ -37,7 +45,7 @@
         </div>
         <div class="mb-3">
           <label for="brandName" class="form-label">Brand Name</label>
-          <input type="text" class="form-control" id="brandName">
+          <input type="text" class="form-control" id="brandName" required>
         </div>
         <div class="mb-3">
           <label for="category" class="form-label">Category</label>
@@ -53,8 +61,10 @@
           <select class="form-select" id="subcategory" required></select>
         </div>
       </div>
+	  
+	  
 
-      
+      <!-- Step 2: Descriptions and Metadata -->
       <div class="step">
         <h4>Descriptions and Metadata</h4>
         <div class="mb-3">
@@ -63,23 +73,23 @@
         </div>
         <div class="mb-3">
           <label for="fullDescription" class="form-label">Full Description</label>
-          <textarea class="form-control" id="fullDescription"></textarea>
+          <textarea class="form-control" id="fullDescription" required></textarea>
         </div>
         <div class="mb-3">
           <label for="metaTitle" class="form-label">Meta Title</label>
-          <input type="text" class="form-control" id="metaTitle">
+          <input type="text" class="form-control" id="metaTitle" required>
         </div>
         <div class="mb-3">
           <label for="metaKeywords" class="form-label">Meta Keywords</label>
-          <input type="text" class="form-control" id="metaKeywords" placeholder="e.g., laptop, electronics, HP">
+          <input type="text" class="form-control" id="metaKeywords" required>
         </div>
         <div class="mb-3">
           <label for="metaDescription" class="form-label">Meta Description</label>
-          <textarea class="form-control" id="metaDescription"></textarea>
+          <textarea class="form-control" id="metaDescription" required></textarea>
         </div>
       </div>
 
-      
+      <!-- Step 3: Media Uploads -->
       <div class="step">
         <h4>Media Uploads</h4>
         <div class="mb-3">
@@ -87,18 +97,20 @@
           <input type="file" class="form-control" id="mainImage" required>
         </div>
         <div class="mb-3">
-          <label for="galleryImages" class="form-label">Gallery Images</label>
-          <input type="file" class="form-control" id="galleryImages" multiple>
+          <label for="galleryImages" class="form-label">Gallery Images (max 3)</label>
+          <input type="file" class="form-control" id="galleryImages" multiple required accept="image/*" onchange="validateGalleryImages()">
+          <small class="form-text text-muted">You can upload up to 3 images.</small>
         </div>
       </div>
 
-      
+      <!-- Step 4: Variant Options -->
       <div class="step">
         <h4>Variant Options</h4>
         <button type="button" class="btn btn-secondary mb-3" onclick="addVariant()">Add Variant</button>
+        <div id="variantContainer"></div>
       </div>
 
-      
+      <!-- Step 5: Pricing and Additional Costs -->
       <div class="step">
         <h4>Pricing and Additional Costs</h4>
         <div class="mb-3">
@@ -107,23 +119,26 @@
         </div>
         <div class="mb-3">
           <label for="discount" class="form-label">Discount (%)</label>
-          <input type="number" class="form-control" id="discount">
+          <input type="number" class="form-control" id="discount" required>
         </div>
         <div class="mb-3">
           <label for="shippingFee" class="form-label">Shipping Fee</label>
-          <input type="number" class="form-control" id="shippingFee">
+          <input type="number" class="form-control" id="shippingFee" required>
         </div>
         <div class="mb-3">
           <label for="totalStock" class="form-label">Total Stock</label>
           <input type="number" class="form-control" id="totalStock" required>
         </div>
+        <div class="mb-3">
+          <label for="finalPrice" class="form-label">Final Price</label>
+          <input type="text" class="form-control" id="finalPrice" disabled>
+        </div>
       </div>
 
-      
+      <!-- Submit Button -->
       <button type="submit" class="btn btn-success mt-3">Submit</button>
     </form>
 
-    
     <table class="table table-bordered mt-5" id="productTable">
       <thead>
         <tr>
@@ -144,18 +159,25 @@
     let currentStep = 0;
     const steps = document.querySelectorAll(".step");
 
-    
     function showStep(step) {
       steps.forEach((stepDiv, index) => {
         stepDiv.classList.toggle("step-active", index === step);
       });
     }
 
-    
     function nextStep() {
+      const inputs = steps[currentStep].querySelectorAll("input[required], select[required], textarea[required]");
+      for (let input of inputs) {
+        if (!input.checkValidity()) {
+          input.reportValidity();
+          return;
+        }
+      }
       if (currentStep < steps.length - 1) {
         currentStep++;
         showStep(currentStep);
+      } else {
+        saveProduct(); // When on the last step, save the product
       }
     }
 
@@ -166,31 +188,106 @@
       }
     }
 
-    document.getElementById("productForm").addEventListener("submit", function (e) {
-      e.preventDefault();
-      saveProduct();
-    });
+    function updateSubcategories() {
+      const subcategory = document.getElementById("subcategory");
+      const category = document.getElementById("category").value;
+      subcategory.innerHTML = "<option>Select Subcategory</option>";
+
+      const subcategories = {
+        Electronics: ["Mobiles", "Laptops", "Cameras"],
+        Clothing: ["Men's", "Women's", "Kids'"],
+        "Home Appliances": ["Kitchen", "Laundry", "Heating & Cooling"]
+      };
+
+      if (subcategories[category]) {
+        subcategories[category].forEach(sub => {
+          subcategory.innerHTML += `<option>${sub}</option>`;
+        });
+      }
+    }
+
+    function addVariant() {
+      const variantContainer = document.getElementById("variantContainer");
+      const variantHTML = `
+        <div class="variant-container">
+          <h5>Variant</h5>
+          <label>Variant Type</label>
+          <input type="text" class="form-control" placeholder="e.g., Size, Color" required>
+          
+          <label>Size</label>
+          <input type="text" class="form-control" required>
+          
+          <label>Color</label>
+          <input type="text" class="form-control" required>
+          
+          <label>Unit Count</label>
+          <input type="number" class="form-control" required>
+          
+          <label>Unit Type</label>
+          <input type="text" class="form-control" placeholder="e.g., kg, pieces" required>
+          
+          <button type="button" class="btn btn-danger mt-2" onclick="removeVariant(this)">Remove Variant</button>
+        </div>
+      `;
+      variantContainer.insertAdjacentHTML("beforeend", variantHTML);
+    }
+
+    function removeVariant(button) {
+      button.closest(".variant-container").remove();
+    }
 
     function saveProduct() {
+      const productName = document.getElementById("productName").value;
+      const sku = document.getElementById("sku").value;
+      const category = document.getElementById("category").value;
+      const subcategory = document.getElementById("subcategory").value;
+      const shortDescription = document.getElementById("shortDescription").value;
+      const fullDescription = document.getElementById("fullDescription").value;
+      const metaTitle = document.getElementById("metaTitle").value;
+      const metaKeywords = document.getElementById("metaKeywords").value;
+      const metaDescription = document.getElementById("metaDescription").value;
+      const basePrice = parseFloat(document.getElementById("basePrice").value);
+      const discount = parseFloat(document.getElementById("discount").value);
+      const shippingFee = parseFloat(document.getElementById("shippingFee").value);
+      const totalStock = parseInt(document.getElementById("totalStock").value);
+      
+      const finalPrice = basePrice - (basePrice * discount / 100) + shippingFee;
+      document.getElementById("finalPrice").value = finalPrice.toFixed(2);
+
       const product = {
-        productName: document.getElementById("productName").value,
-        sku: document.getElementById("sku").value,
-        category: document.getElementById("category").value,
-        basePrice: document.getElementById("basePrice").value,
-        finalPrice: calculateFinalPrice(),
-        totalStock: document.getElementById("totalStock").value,
+        productName,
+        sku,
+        category,
+        subcategory,
+        shortDescription,
+        fullDescription,
+        metaTitle,
+        metaKeywords,
+        metaDescription,
+        basePrice,
+        finalPrice,
+        shippingFee,
+        totalStock
       };
 
       const products = JSON.parse(localStorage.getItem("products")) || [];
       products.push(product);
       localStorage.setItem("products", JSON.stringify(products));
+
       displayProducts();
+      clearForm();
+    }
+
+    function clearForm() {
+      document.getElementById("productForm").reset();
+      currentStep = 0;
+      showStep(currentStep);
     }
 
     function displayProducts() {
       const products = JSON.parse(localStorage.getItem("products")) || [];
-      const productTable = document.querySelector("#productTable tbody");
-      productTable.innerHTML = "";
+      const tableBody = document.querySelector("#productTable tbody");
+      tableBody.innerHTML = "";
 
       products.forEach((product, index) => {
         const row = document.createElement("tr");
@@ -201,21 +298,43 @@
           <td>${product.basePrice}</td>
           <td>${product.finalPrice}</td>
           <td>${product.totalStock}</td>
-          <td><button class="btn btn-sm btn-primary" onclick="editProduct(${index})">Edit</button></td>
+          <td>
+            <button class="btn btn-info btn-sm" onclick="editProduct(${index})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${index})">Delete</button>
+          </td>
         `;
-        productTable.appendChild(row);
+        tableBody.appendChild(row);
       });
     }
 
-    function calculateFinalPrice() {
-      const basePrice = parseFloat(document.getElementById("basePrice").value) || 0;
-      const discount = parseFloat(document.getElementById("discount").value) || 0;
-      const shippingFee = parseFloat(document.getElementById("shippingFee").value) || 0;
-      return (basePrice - (basePrice * discount) / 100 + shippingFee).toFixed(2);
+    function editProduct(index) {
+      const products = JSON.parse(localStorage.getItem("products")) || [];
+      const product = products[index];
+
+      document.getElementById("productName").value = product.productName;
+      document.getElementById("sku").value = product.sku;
+      document.getElementById("category").value = product.category;
+      document.getElementById("subcategory").value = product.subcategory;
+      document.getElementById("shortDescription").value = product.shortDescription;
+      document.getElementById("fullDescription").value = product.fullDescription;
+      document.getElementById("metaTitle").value = product.metaTitle;
+      document.getElementById("metaKeywords").value = product.metaKeywords;
+      document.getElementById("metaDescription").value = product.metaDescription;
+      // Handle media and variants similarly...
+      currentStep = 0;
+      showStep(currentStep);
     }
 
+    function deleteProduct(index) {
+      const products = JSON.parse(localStorage.getItem("products")) || [];
+      products.splice(index, 1);
+      localStorage.setItem("products", JSON.stringify(products));
+      displayProducts();
+    }
 
-    window.onload = displayProducts;
-  </script>
+    // Initial display of products
+    displayProducts();
+</script>
+
 </body>
 </html>
